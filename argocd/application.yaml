@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nginx-app
+  namespace: argocd
+spec:
+  project: default
+  
+  # Source: Git repository with Helm chart
+  source:
+    repoURL: https://github.com/fiilipjaworski31/k8s-microservice-gitops
+    targetRevision: main
+    path: helm-charts/nginx-app
+    helm:
+      valueFiles:
+        - ../../argocd/values-prod.yaml
+  
+  # Destination: Kubernetes cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nginx-app
+  
+  # Sync policy: automatic deployment
+  syncPolicy:
+    automated:
+      prune: true      # Usuwa zasoby usunięte z Git
+      selfHeal: true   # Automatycznie naprawia drift
+    syncOptions:
+      - CreateNamespace=true
