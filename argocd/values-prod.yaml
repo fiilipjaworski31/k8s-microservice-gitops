@@ -7,7 +7,7 @@ image:
   pullPolicy: IfNotPresent
 
 # Replicas (HPA will override if enabled)
-replicaCount: 3
+replicaCount: 4
 
 # Service
 service:
