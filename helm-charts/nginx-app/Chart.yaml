@@ -1,0 +1,13 @@
+apiVersion: v2
+name: nginx-app
+description: A production-grade NGINX microservice with authentication, persistence, and autoscaling
+type: application
+version: 1.0.0
+appVersion: "1.25.3"
+keywords:
+  - nginx
+  - microservice
+  - kubernetes
+maintainers:
+  - name: Filip
+    email: my-email@example.com

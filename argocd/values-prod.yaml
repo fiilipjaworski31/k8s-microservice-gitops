@@ -1,0 +1,109 @@
+# Production values for nginx-app deployed via Argo CD
+
+# Image configuration
+image:
+  repository: nginx
+  tag: "1.25.3"
+  pullPolicy: IfNotPresent
+
+# Replicas (HPA will override if enabled)
+replicaCount: 2
+
+# Service
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 80
+
+# Resources (production-tuned)
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "200m"
+  limits:
+    memory: "256Mi"
+    cpu: "400m"
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Health probes
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 80
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 80
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: "standard"
+  accessMode: ReadWriteOnce
+  size: 1Gi
+
+# ConfigMap - nginx config
+nginxConfig: |
+  events {
+      worker_connections 1024;
+  }
+
+  http {
+      server {
+          listen 80;
+          server_name _;
+
+          # Basic Authentication
+          auth_basic "Restricted Access";
+          auth_basic_user_file /etc/nginx/.htpasswd;
+
+          location / {
+              root /usr/share/nginx/html;
+              index index.html;
+          }
+
+          # Health check endpoint (no auth)
+          location /health {
+              auth_basic off;
+              access_log off;
+              return 200 "healthy\n";
+              add_header Content-Type text/plain;
+          }
+      }
+  }
+
+# Secret - Basic Auth
+basicAuth:
+  htpasswd: |
+    admin:$apr1$v3lMBhv5$RIfNJgraqZSrwIkAcZuSp0
+
+# Labels
+labels:
+  app: nginx-app
+  environment: production
+  managed-by: argocd
+  deployed-via: gitops
+
+# Annotations
+annotations:
+  description: "Production NGINX deployed via Argo CD"
+  gitops: "enabled"
+
+# Namespace
+namespace: nginx-app

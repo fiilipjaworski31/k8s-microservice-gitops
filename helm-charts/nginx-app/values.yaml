@@ -1,0 +1,107 @@
+# Replica configuration
+replicaCount: 2
+
+# Image configuration
+image:
+  repository: nginx
+  tag: "1.25.3"
+  pullPolicy: IfNotPresent
+
+# Namespace
+namespace: nginx-app
+
+# Service configuration
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 80
+
+# Resource limits and requests
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "100m"
+  limits:
+    memory: "128Mi"
+    cpu: "200m"
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Health probes
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 80
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 80
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Persistent Volume Claim
+persistence:
+  enabled: true
+  storageClass: "standard"
+  accessMode: ReadWriteOnce
+  size: 1Gi
+
+# ConfigMap - nginx configuration
+nginxConfig: |
+  events {
+      worker_connections 1024;
+  }
+
+  http {
+      server {
+          listen 80;
+          server_name _;
+
+          # Basic Authentication
+          auth_basic "Restricted Access";
+          auth_basic_user_file /etc/nginx/.htpasswd;
+
+          location / {
+              root /usr/share/nginx/html;
+              index index.html;
+          }
+
+          # Health check endpoint (no auth)
+          location /health {
+              auth_basic off;
+              access_log off;
+              return 200 "healthy\n";
+              add_header Content-Type text/plain;
+          }
+      }
+  }
+
+# Secret - Basic Auth credentials
+# Generated with: htpasswd -nb admin secretpassword
+basicAuth:
+  htpasswd: |
+    admin:$apr1$v3lMBhv5$RIfNJgraqZSrwIkAcZuSp0
+
+# Labels
+labels:
+  app: nginx-app
+  environment: production
+  managed-by: helm
+
+# Annotations
+annotations:
+  description: "Production NGINX microservice"
+  monitoring: "enabled"
